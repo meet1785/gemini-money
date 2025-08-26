@@ -8,6 +8,7 @@ import ExpenseTracker from "@/components/ExpenseTracker";
 import GoalSetting from "@/components/GoalSetting";
 import PortfolioTracker from "@/components/PortfolioTracker";
 import EducationHub from "@/components/EducationHub";
+import APIKeySetup from "@/components/APIKeySetup";
 import Footer from "@/components/Footer";
 
 const Index = () => {
@@ -18,6 +19,7 @@ const Index = () => {
         <Hero />
         <Dashboard />
         <Features />
+        <APIKeySetup />
         <FinanceChat />
         <InvestmentCalculator />
         <ExpenseTracker />
