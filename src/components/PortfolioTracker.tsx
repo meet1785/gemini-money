@@ -59,7 +59,7 @@ const PortfolioTracker = () => {
       invested: parseFloat(newInv.invested),
       current: parseFloat(newInv.current),
       type: newInv.type,
-      risk: newInv.risk as any
+      risk: newInv.risk as "High" | "Medium" | "Low"
     });
     setNewInv({ name: "", invested: "", current: "", type: "Stocks", risk: "Medium" });
     setShowForm(false);

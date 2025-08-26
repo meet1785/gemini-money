@@ -1,8 +1,26 @@
-import { GoogleGenerativeAI } from '@google/generative-ai';
+import { GoogleGenerativeAI, GenerativeModel } from '@google/generative-ai';
+
+interface Expense {
+  id: string;
+  category: string;
+  amount: number;
+  date: string;
+  description: string;
+}
+
+interface FinancialGoal {
+  id: string;
+  name: string;
+  targetAmount: number;
+  currentAmount: number;
+  targetDate: string;
+  category: string;
+  monthlyContribution: number;
+}
 
 class GeminiService {
   private genAI: GoogleGenerativeAI | null = null;
-  private model: any = null;
+  private model: GenerativeModel | null = null;
   private isInitialized = false;
 
   constructor() {
@@ -44,7 +62,52 @@ class GeminiService {
     return 'valid';
   }
 
-  public async generateFinancialAdvice(userMessage: string, context?: any): Promise<string> {
+  /**
+   * Test the API key with a simple request to validate it actually works
+   */
+  public async validateAPIKey(): Promise<{ isValid: boolean; error?: string }> {
+    const apiKey = import.meta.env.VITE_GEMINI_API_KEY;
+    
+    if (!apiKey || apiKey.trim() === '' || apiKey === 'your_gemini_api_key_here') {
+      return { isValid: false, error: 'API key is missing' };
+    }
+
+    try {
+      // Create a test instance to avoid affecting the main service
+      const testGenAI = new GoogleGenerativeAI(apiKey);
+      const testModel = testGenAI.getGenerativeModel({ model: "gemini-pro" });
+      
+      // Make a simple test request
+      const result = await testModel.generateContent("Test connection. Respond with just 'OK'.");
+      const response = await result.response;
+      const text = response.text();
+      
+      if (text) {
+        return { isValid: true };
+      } else {
+        return { isValid: false, error: 'Invalid response from API' };
+      }
+    } catch (error) {
+      console.error('API key validation error:', error);
+      
+      // Parse different types of errors
+      if (error instanceof Error) {
+        if (error.message.includes('API_KEY_INVALID')) {
+          return { isValid: false, error: 'Invalid API key' };
+        } else if (error.message.includes('QUOTA_EXCEEDED')) {
+          return { isValid: false, error: 'API quota exceeded' };
+        } else if (error.message.includes('PERMISSION_DENIED')) {
+          return { isValid: false, error: 'API key lacks necessary permissions' };
+        } else {
+          return { isValid: false, error: `API error: ${error.message}` };
+        }
+      }
+      
+      return { isValid: false, error: 'Unable to validate API key' };
+    }
+  }
+
+  public async generateFinancialAdvice(userMessage: string, context?: Record<string, unknown>): Promise<string> {
     if (!this.isReady()) {
       return this.getFallbackResponse(userMessage);
     }
@@ -60,7 +123,7 @@ class GeminiService {
     }
   }
 
-  private createFinancialPrompt(userMessage: string, context?: any): string {
+  private createFinancialPrompt(userMessage: string, context?: Record<string, unknown>): string {
     const basePrompt = `You are an expert financial advisor and mentor. Your role is to provide personalized, practical, and easy-to-understand financial advice. 
 
 Guidelines:
@@ -99,7 +162,7 @@ Please provide a helpful, personalized response (keep it under 200 words):`;
     }
   }
 
-  public async analyzeExpenses(expenses: any[]): Promise<{
+  public async analyzeExpenses(expenses: Expense[]): Promise<{
     insights: string[];
     recommendations: string[];
     trends: string;
@@ -154,7 +217,7 @@ Please provide a helpful, personalized response (keep it under 200 words):`;
     }
   }
 
-  public async generateInvestmentStrategy(goals: any): Promise<string> {
+  public async generateInvestmentStrategy(goals: FinancialGoal[]): Promise<string> {
     if (!this.isReady()) {
       return "For personalized investment strategies, please add your Gemini API key. Meanwhile, consider a diversified portfolio with equity mutual funds for long-term goals and debt funds for short-term needs.";
     }

@@ -1,4 +1,5 @@
 import React, { createContext, useContext, useEffect, useState, useCallback } from 'react';
+import storageService from '@/services/storageService';
 
 // ---- Types ----
 export interface Investment {
@@ -30,7 +31,7 @@ export interface Goal {
   targetDate: string;
   category: string;
   monthlyContribution: number;
-  icon?: any; // Lucide icon component
+  icon?: React.ComponentType; // Lucide icon component
 }
 
 export interface PortfolioSummary {
@@ -60,94 +61,117 @@ interface FinancialDataContextValue {
 
 const FinancialDataContext = createContext<FinancialDataContextValue | undefined>(undefined);
 
+// Default data factory
+const getDefaultInvestments = (): Investment[] => [
+  {
+    id: 'inv1',
+    name: 'Equity Mutual Funds',
+    invested: 200000,
+    current: 235000,
+    returns: 35000,
+    returnPercentage: 17.5,
+    allocation: 48.5,
+    type: 'Mutual Fund',
+    risk: 'High'
+  },
+  {
+    id: 'inv2',
+    name: 'Fixed Deposits',
+    invested: 150000,
+    current: 162000,
+    returns: 12000,
+    returnPercentage: 8.0,
+    allocation: 33.4,
+    type: 'Fixed Deposit',
+    risk: 'Low'
+  },
+  {
+    id: 'inv3',
+    name: 'Direct Stocks',
+    invested: 70000,
+    current: 88000,
+    returns: 18000,
+    returnPercentage: 25.7,
+    allocation: 18.1,
+    type: 'Stocks',
+    risk: 'High'
+  }
+];
+
+const getDefaultExpenses = (): Expense[] => [
+  {
+    id: 'exp1',
+    category: 'Food & Dining',
+    amount: 12500,
+    date: new Date().toISOString().split('T')[0],
+    description: 'Groceries and dining out',
+    type: 'manual'
+  },
+  {
+    id: 'exp2',
+    category: 'Transportation',
+    amount: 8500,
+    date: new Date().toISOString().split('T')[0],
+    description: 'Fuel and public transport',
+    type: 'manual'
+  },
+  {
+    id: 'exp3',
+    category: 'Entertainment',
+    amount: 4500,
+    date: new Date().toISOString().split('T')[0],
+    description: 'Movies and subscriptions',
+    type: 'manual'
+  }
+];
+
+const getDefaultGoals = (): Goal[] => [
+  {
+    id: 'goal1',
+    name: 'Emergency Fund',
+    targetAmount: 600000,
+    currentAmount: 420000,
+    targetDate: '2025-06-01',
+    category: 'Emergency',
+    monthlyContribution: 25000
+  },
+  {
+    id: 'goal2',
+    name: 'Home Down Payment',
+    targetAmount: 2000000,
+    currentAmount: 850000,
+    targetDate: '2026-12-31',
+    category: 'Major Purchase',
+    monthlyContribution: 40000
+  }
+];
+
 export const FinancialDataProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
-  const [investments, setInvestments] = useState<Investment[]>([
-    {
-      id: 'inv1',
-      name: 'Equity Mutual Funds',
-      invested: 200000,
-      current: 235000,
-      returns: 35000,
-      returnPercentage: 17.5,
-      allocation: 48.5,
-      type: 'Mutual Fund',
-      risk: 'High'
-    },
-    {
-      id: 'inv2',
-      name: 'Fixed Deposits',
-      invested: 150000,
-      current: 162000,
-      returns: 12000,
-      returnPercentage: 8.0,
-      allocation: 33.4,
-      type: 'Fixed Deposit',
-      risk: 'Low'
-    },
-    {
-      id: 'inv3',
-      name: 'Direct Stocks',
-      invested: 70000,
-      current: 88000,
-      returns: 18000,
-      returnPercentage: 25.7,
-      allocation: 18.1,
-      type: 'Stocks',
-      risk: 'High'
-    }
-  ]);
+  // Initialize state with localStorage data or defaults
+  const [investments, setInvestments] = useState<Investment[]>(() => {
+    const stored = storageService.loadData();
+    return stored?.investments || getDefaultInvestments();
+  });
 
-  const [expenses, setExpenses] = useState<Expense[]>([
-    {
-      id: 'exp1',
-      category: 'Food & Dining',
-      amount: 12500,
-      date: new Date().toISOString().split('T')[0],
-      description: 'Groceries and dining out',
-      type: 'manual'
-    },
-    {
-      id: 'exp2',
-      category: 'Transportation',
-      amount: 8500,
-      date: new Date().toISOString().split('T')[0],
-      description: 'Fuel and public transport',
-      type: 'manual'
-    },
-    {
-      id: 'exp3',
-      category: 'Entertainment',
-      amount: 4500,
-      date: new Date().toISOString().split('T')[0],
-      description: 'Movies and subscriptions',
-      type: 'manual'
-    }
-  ]);
+  const [expenses, setExpenses] = useState<Expense[]>(() => {
+    const stored = storageService.loadData();
+    return stored?.expenses || getDefaultExpenses();
+  });
 
-  const [goals, setGoals] = useState<Goal[]>([
-    {
-      id: 'goal1',
-      name: 'Emergency Fund',
-      targetAmount: 600000,
-      currentAmount: 420000,
-      targetDate: '2025-06-01',
-      category: 'Emergency',
-      monthlyContribution: 25000
-    },
-    {
-      id: 'goal2',
-      name: 'Home Down Payment',
-      targetAmount: 2000000,
-      currentAmount: 850000,
-      targetDate: '2026-12-31',
-      category: 'Major Purchase',
-      monthlyContribution: 40000
-    }
-  ]);
+  const [goals, setGoals] = useState<Goal[]>(() => {
+    const stored = storageService.loadData();
+    return stored?.goals || getDefaultGoals();
+  });
 
   const [portfolio, setPortfolio] = useState<PortfolioSummary>(() => {
-    const totalInvested = investments.reduce((s, i) => s + i.invested, 0);
-    const totalValue = investments.reduce((s, i) => s + i.current, 0);
+    const stored = storageService.loadData();
+    if (stored?.portfolio) {
+      return stored.portfolio;
+    }
+    // Calculate default portfolio from initial investments
+    const initialInvestments = getDefaultInvestments();
+    const totalInvested = initialInvestments.reduce((s, i) => s + i.invested, 0);
+    const totalValue = initialInvestments.reduce((s, i) => s + i.current, 0);
     const totalReturns = totalValue - totalInvested;
     return {
       totalValue,
@@ -159,7 +183,10 @@ export const FinancialDataProvider: React.FC<{ children: React.ReactNode }> = ({
     };
   });
 
-  const [lastUpdate, setLastUpdate] = useState<Date>(new Date());
+  const [lastUpdate, setLastUpdate] = useState<Date>(() => {
+    const stored = storageService.loadData();
+    return stored?.lastUpdate ? new Date(stored.lastUpdate) : new Date();
+  });
   const [isConnected, setIsConnected] = useState<boolean>(true);
 
   const recomputePortfolio = useCallback(() => {
@@ -178,6 +205,18 @@ export const FinancialDataProvider: React.FC<{ children: React.ReactNode }> = ({
   useEffect(() => {
     recomputePortfolio();
   }, [recomputePortfolio]);
+
+  // Persist data to localStorage whenever state changes
+  useEffect(() => {
+    const dataToSave = {
+      portfolio,
+      investments,
+      expenses,
+      goals,
+      lastUpdate: lastUpdate.toISOString()
+    };
+    storageService.saveData(dataToSave);
+  }, [portfolio, investments, expenses, goals, lastUpdate]);
 
   const simulatePortfolioUpdate = useCallback(() => {
     // simulate small random change applied to each investment's current value
