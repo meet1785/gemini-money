@@ -5,6 +5,9 @@ import { componentTagger } from "lovable-tagger";
 
 // https://vitejs.dev/config/
 export default defineConfig(({ mode }) => ({
+  // If deploying to GitHub Pages under /gemini-money/, set the base path
+  // Local dev remains '/'. You can override by running: BASE_PATH=/custom vite build
+  base: process.env.BASE_PATH || '/gemini-money/',
   server: {
     host: "::",
     port: 8080,

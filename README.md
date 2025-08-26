@@ -104,6 +104,16 @@ npm run dev
 npm run build
 ```
 
+### Deploy to GitHub Pages
+
+1. Ensure the repository is named `gemini-money` (or adjust `base` in `vite.config.ts`).
+2. Add your Gemini key as a repository secret named `VITE_GEMINI_API_KEY` (Settings > Secrets and variables > Actions > New repository secret).
+3. Push to `main`. The included GitHub Actions workflow (`.github/workflows/deploy.yml`) will build and publish the site to GitHub Pages.
+4. Enable Pages: Settings > Pages > Build and deployment > Source: GitHub Actions.
+5. Access at: `https://<your-username>.github.io/gemini-money/`
+
+If you fork under a different repo name, update the `base` option in `vite.config.ts` to match: `base: '/your-repo-name/'`.
+
 ### Preview Production Build
 ```bash
 npm run preview

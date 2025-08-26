@@ -7,89 +7,52 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Textarea } from "@/components/ui/textarea";
 import { Badge } from "@/components/ui/badge";
 import { Alert, AlertDescription } from "@/components/ui/alert";
-import { 
-  Upload, 
-  Plus, 
-  FileText, 
-  Trash2, 
+import {
+  Upload,
+  Plus,
+  FileText,
+  Trash2,
   Edit,
   Calendar,
   DollarSign,
   Tag,
   TrendingUp,
   Bot,
-  Loader2
+  Loader2,
+  Check,
+  X
 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import geminiService from "@/services/geminiService";
+import { useFinancialData } from "@/context/FinancialDataContext";
 
-interface Expense {
+interface EditingState {
   id: string;
-  amount: number;
+  amount: string;
   category: string;
   description: string;
   date: string;
-  type: "manual" | "uploaded";
 }
 
 const ExpenseTracker = () => {
   const { toast } = useToast();
-  const [expenses, setExpenses] = useState<Expense[]>([
-    {
-      id: "1",
-      amount: 850,
-      category: "Food & Dining",
-      description: "Lunch at restaurant",
-      date: "2024-01-15",
-      type: "manual"
-    },
-    {
-      id: "2", 
-      amount: 2400,
-      category: "Transportation",
-      description: "Fuel and parking",
-      date: "2024-01-14",
-      type: "uploaded"
-    },
-    {
-      id: "3",
-      amount: 1200,
-      category: "Entertainment",
-      description: "Movie tickets",
-      date: "2024-01-13",
-      type: "manual"
-    }
-  ]);
-
-  const [aiAnalysis, setAiAnalysis] = useState<{
-    insights: string[];
-    recommendations: string[];
-    trends: string;
-  }>({
-    insights: [],
-    recommendations: [],
-    trends: ""
-  });
-  
+  const { expenses, addExpense, removeExpense } = useFinancialData();
+  const [aiAnalysis, setAiAnalysis] = useState<{ insights: string[]; recommendations: string[]; trends: string; }>({ insights: [], recommendations: [], trends: "" });
   const [isAnalyzing, setIsAnalyzing] = useState(false);
-  const [newExpense, setNewExpense] = useState({
-    amount: "",
-    category: "",
-    description: "",
-    date: ""
-  });
+  const [newExpense, setNewExpense] = useState({ amount: "", category: "", description: "", date: "" });
+  const [editing, setEditing] = useState<EditingState | null>(null);
 
   // Get AI analysis when expenses change
   useEffect(() => {
     const analyzeExpenses = async () => {
-      if (expenses.length === 0) return;
+      if (!expenses.length) return;
       
       setIsAnalyzing(true);
       try {
-        const analysis = await geminiService.analyzeExpenses(expenses);
+        const analysis = await geminiService.analyzeExpenses(expenses as any);
         setAiAnalysis(analysis);
-      } catch (error) {
-        console.error('Error analyzing expenses:', error);
+      } catch (e) {
+        console.error('Error analyzing expenses:', e);
       } finally {
         setIsAnalyzing(false);
       }
@@ -112,62 +75,70 @@ const ExpenseTracker = () => {
 
   const handleAddExpense = () => {
     if (!newExpense.amount || !newExpense.category || !newExpense.date) {
-      toast({
-        title: "Missing Information",
-        description: "Please fill in all required fields",
-        variant: "destructive"
-      });
+      toast({ title: "Missing Information", description: "Please fill in all required fields", variant: "destructive" });
       return;
     }
 
-    const expense: Expense = {
-      id: Date.now().toString(),
+    addExpense({
       amount: parseFloat(newExpense.amount),
       category: newExpense.category,
       description: newExpense.description || "No description",
       date: newExpense.date,
-      type: "manual"
-    };
-
-    setExpenses(prev => [expense, ...prev]);
+      type: 'manual'
+    });
     setNewExpense({ amount: "", category: "", description: "", date: "" });
     
-    toast({
-      title: "Expense Added",
-      description: "Your expense has been tracked successfully"
-    });
+    toast({ title: "Expense Added", description: "Your expense has been tracked successfully" });
   };
 
   const handleFileUpload = () => {
     // Simulate file upload processing
-    const simulatedExpenses: Expense[] = [
+    const simulatedExpenses = [
       {
-        id: Date.now().toString(),
         amount: 3200,
-        category: "Utilities",
-        description: "Electricity bill - AI categorized",
-        date: "2024-01-12",
-        type: "uploaded"
+        category: 'Utilities',
+        description: 'Electricity bill - AI categorized',
+        date: new Date().toISOString().split('T')[0],
+        type: 'uploaded' as const
       },
       {
-        id: (Date.now() + 1).toString(),
         amount: 1800,
-        category: "Food & Dining", 
-        description: "Grocery shopping - AI categorized",
-        date: "2024-01-11",
-        type: "uploaded"
+        category: 'Food & Dining', 
+        description: 'Grocery shopping - AI categorized',
+        date: new Date().toISOString().split('T')[0],
+        type: 'uploaded' as const
       }
     ];
 
-    setExpenses(prev => [...simulatedExpenses, ...prev]);
+    simulatedExpenses.forEach(e => addExpense(e));
     
-    toast({
-      title: "File Processed",
-      description: "2 expenses automatically categorized by AI"
-    });
+    toast({ title: "File Processed", description: "2 expenses automatically categorized by AI" });
   };
 
-  const totalExpenses = expenses.reduce((sum, expense) => sum + expense.amount, 0);
+  const startEditing = (id: string) => {
+    const exp = expenses.find(e => e.id === id);
+    if (!exp) return;
+    setEditing({ id, amount: exp.amount.toString(), category: exp.category, description: exp.description, date: exp.date });
+  };
+
+  const cancelEditing = () => setEditing(null);
+
+  const saveEditing = () => {
+    if (!editing) return;
+    // naive re-create: remove old then add new (keeps ordering simple)
+    removeExpense(editing.id);
+    addExpense({
+      amount: parseFloat(editing.amount),
+      category: editing.category,
+      description: editing.description,
+      date: editing.date,
+      type: 'manual'
+    });
+    setEditing(null);
+    toast({ title: 'Expense Updated', description: 'Changes saved.' });
+  };
+
+  const totalExpenses = expenses.reduce((sum, e) => sum + e.amount, 0);
 
   return (
     <section className="py-16">
@@ -196,7 +167,7 @@ const ExpenseTracker = () => {
                   type="number"
                   placeholder="Enter amount"
                   value={newExpense.amount}
-                  onChange={(e) => setNewExpense(prev => ({ ...prev, amount: e.target.value }))}
+                  onChange={e => setNewExpense(p => ({ ...p, amount: e.target.value }))}
                 />
               </div>
 
@@ -204,15 +175,13 @@ const ExpenseTracker = () => {
                 <Label htmlFor="category">Category *</Label>
                 <Select 
                   value={newExpense.category} 
-                  onValueChange={(value) => setNewExpense(prev => ({ ...prev, category: value }))}
+                  onValueChange={value => setNewExpense(p => ({ ...p, category: value }))}
                 >
                   <SelectTrigger>
                     <SelectValue placeholder="Select category" />
                   </SelectTrigger>
                   <SelectContent>
-                    {categories.map(category => (
-                      <SelectItem key={category} value={category}>{category}</SelectItem>
-                    ))}
+                    {categories.map(c => <SelectItem key={c} value={c}>{c}</SelectItem>)}
                   </SelectContent>
                 </Select>
               </div>
@@ -223,7 +192,7 @@ const ExpenseTracker = () => {
                   id="date"
                   type="date"
                   value={newExpense.date}
-                  onChange={(e) => setNewExpense(prev => ({ ...prev, date: e.target.value }))}
+                  onChange={e => setNewExpense(p => ({ ...p, date: e.target.value }))}
                 />
               </div>
 
@@ -233,7 +202,7 @@ const ExpenseTracker = () => {
                   id="description"
                   placeholder="Optional description"
                   value={newExpense.description}
-                  onChange={(e) => setNewExpense(prev => ({ ...prev, description: e.target.value }))}
+                  onChange={e => setNewExpense(p => ({ ...p, description: e.target.value }))}
                 />
               </div>
 
@@ -297,39 +266,72 @@ const ExpenseTracker = () => {
               </CardHeader>
               <CardContent>
                 <div className="space-y-4">
-                  {expenses.slice(0, 5).map((expense) => (
-                    <div key={expense.id} className="flex items-center justify-between p-3 bg-muted/50 rounded-lg">
-                      <div className="flex items-center gap-3">
-                        <div className="bg-gradient-primary p-2 rounded-lg">
-                          <Tag className="h-4 w-4 text-white" />
+                  {expenses.slice(0, 8).map(expense => {
+                    const isEdit = editing?.id === expense.id;
+                    return (
+                      <div key={expense.id} className="flex items-center justify-between p-3 bg-muted/50 rounded-lg">
+                        <div className="flex items-center gap-3">
+                          <div className="bg-gradient-primary p-2 rounded-lg">
+                            <Tag className="h-4 w-4 text-white" />
+                          </div>
+                          <div className="space-y-1">
+                            {isEdit ? (
+                              <Input value={editing.amount} onChange={e => setEditing(s => s ? { ...s, amount: e.target.value } : s)} className="h-8 w-32 text-xs" />
+                            ) : (
+                              <p className="font-medium">{expense.description}</p>
+                            )}
+                            <div className="flex items-center gap-2 text-sm text-muted-foreground flex-wrap">
+                              <Badge variant="outline" className="text-xs">
+                                {isEdit ? (
+                                  <Select value={editing.category} onValueChange={v => setEditing(s => s ? { ...s, category: v } : s)}>
+                                    <SelectTrigger className="h-6 w-32">
+                                      <SelectValue />
+                                    </SelectTrigger>
+                                    <SelectContent>
+                                      {categories.map(c => <SelectItem key={c} value={c}>{c}</SelectItem>)}
+                                    </SelectContent>
+                                  </Select>
+                                ) : expense.category}
+                              </Badge>
+                              <Calendar className="h-3 w-3" />
+                              {isEdit ? (
+                                <Input type="date" value={editing.date} onChange={e => setEditing(s => s ? { ...s, date: e.target.value } : s)} className="h-6 w-36 text-xs" />
+                              ) : expense.date}
+                              {expense.type === 'uploaded' && <Badge variant="secondary" className="text-xs">AI</Badge>}
+                            </div>
+                          </div>
                         </div>
-                        <div>
-                          <p className="font-medium">{expense.description}</p>
-                          <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                            <Badge variant="outline" className="text-xs">
-                              {expense.category}
-                            </Badge>
-                            <Calendar className="h-3 w-3" />
-                            {expense.date}
-                            {expense.type === "uploaded" && (
-                              <Badge variant="secondary" className="text-xs">AI</Badge>
+                        <div className="text-right space-y-1">
+                          {isEdit ? (
+                            <Input value={editing.description} onChange={e => setEditing(s => s ? { ...s, description: e.target.value } : s)} className="h-8 text-xs" placeholder="Description" />
+                          ) : (
+                            <p className="font-bold">₹{expense.amount.toLocaleString()}</p>
+                          )}
+                          <div className="flex gap-1 justify-end">
+                            {isEdit ? (
+                              <>
+                                <Button size="sm" variant="ghost" className="h-6 w-6 p-0 text-green-600" onClick={saveEditing}>
+                                  <Check className="h-3 w-3" />
+                                </Button>
+                                <Button size="sm" variant="ghost" className="h-6 w-6 p-0" onClick={cancelEditing}>
+                                  <X className="h-3 w-3" />
+                                </Button>
+                              </>
+                            ) : (
+                              <>
+                                <Button size="sm" variant="ghost" className="h-6 w-6 p-0" onClick={() => startEditing(expense.id)}>
+                                  <Edit className="h-3 w-3" />
+                                </Button>
+                                <Button size="sm" variant="ghost" className="h-6 w-6 p-0 text-destructive" onClick={() => removeExpense(expense.id)}>
+                                  <Trash2 className="h-3 w-3" />
+                                </Button>
+                              </>
                             )}
                           </div>
                         </div>
                       </div>
-                      <div className="text-right">
-                        <p className="font-bold">₹{expense.amount.toLocaleString()}</p>
-                        <div className="flex gap-1">
-                          <Button size="sm" variant="ghost" className="h-6 w-6 p-0">
-                            <Edit className="h-3 w-3" />
-                          </Button>
-                          <Button size="sm" variant="ghost" className="h-6 w-6 p-0 text-destructive">
-                            <Trash2 className="h-3 w-3" />
-                          </Button>
-                        </div>
-                      </div>
-                    </div>
-                  ))}
+                    );
+                  })}
                 </div>
               </CardContent>
             </Card>
@@ -351,8 +353,8 @@ const ExpenseTracker = () => {
                       Key Insights
                     </h4>
                     <div className="space-y-2">
-                      {aiAnalysis.insights.map((insight, index) => (
-                        <Alert key={index} className="border-blue-200 bg-blue-50/50">
+                      {aiAnalysis.insights.map((insight, i) => (
+                        <Alert key={i} className="border-blue-200 bg-blue-50/50">
                           <AlertDescription className="text-blue-700">
                             {insight}
                           </AlertDescription>
@@ -366,10 +368,10 @@ const ExpenseTracker = () => {
                   <div>
                     <h4 className="font-medium mb-3">Recommendations</h4>
                     <div className="space-y-2">
-                      {aiAnalysis.recommendations.map((recommendation, index) => (
-                        <Alert key={index} className="border-green-200 bg-green-50/50">
+                      {aiAnalysis.recommendations.map((rec, i) => (
+                        <Alert key={i} className="border-green-200 bg-green-50/50">
                           <AlertDescription className="text-green-700">
-                            • {recommendation}
+                            • {rec}
                           </AlertDescription>
                         </Alert>
                       ))}

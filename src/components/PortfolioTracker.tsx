@@ -6,55 +6,21 @@ import {
   TrendingUp, 
   TrendingDown, 
   DollarSign, 
-  PieChart,
-  Plus,
-  Eye,
-  ArrowUpRight,
-  ArrowDownRight
+  PieChart, 
+  Plus, 
+  Eye, 
+  ArrowUpRight, 
+  ArrowDownRight 
 } from "lucide-react";
+import { useFinancialData } from "@/context/FinancialDataContext";
+import { useState } from "react";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
 
 const PortfolioTracker = () => {
-  const portfolio = {
-    totalValue: 485000,
-    totalInvested: 420000,
-    totalReturns: 65000,
-    returnPercentage: 15.48,
-    dayChange: 2850,
-    dayChangePercentage: 0.59
-  };
-
-  const investments = [
-    {
-      name: "Equity Mutual Funds",
-      invested: 200000,
-      current: 235000,
-      returns: 35000,
-      returnPercentage: 17.5,
-      allocation: 48.5,
-      type: "Mutual Fund",
-      risk: "High"
-    },
-    {
-      name: "Fixed Deposits",
-      invested: 150000,
-      current: 162000,
-      returns: 12000,
-      returnPercentage: 8.0,
-      allocation: 33.4,
-      type: "Fixed Deposit",
-      risk: "Low"
-    },
-    {
-      name: "Direct Stocks",
-      invested: 70000,
-      current: 88000,
-      returns: 18000,
-      returnPercentage: 25.7,
-      allocation: 18.1,
-      type: "Stocks",
-      risk: "High"
-    }
-  ];
+  const { portfolio, investments, addInvestment } = useFinancialData();
+  const [showForm, setShowForm] = useState(false);
+  const [newInv, setNewInv] = useState({ name: "", invested: "", current: "", type: "Stocks", risk: "Medium" });
 
   const recommendations = [
     {
@@ -84,6 +50,19 @@ const PortfolioTracker = () => {
       case "Low": return "text-secondary";
       default: return "text-muted-foreground";
     }
+  };
+
+  const submitNewInvestment = () => {
+    if (!newInv.name || !newInv.invested || !newInv.current) return;
+    addInvestment({
+      name: newInv.name,
+      invested: parseFloat(newInv.invested),
+      current: parseFloat(newInv.current),
+      type: newInv.type,
+      risk: newInv.risk as any
+    });
+    setNewInv({ name: "", invested: "", current: "", type: "Stocks", risk: "Medium" });
+    setShowForm(false);
   };
 
   return (
@@ -132,7 +111,11 @@ const PortfolioTracker = () => {
                 <p className="text-white/80 text-sm mb-1">Today's Change</p>
                 <div className="flex items-center gap-2">
                   <p className="text-2xl font-bold">₹{portfolio.dayChange.toLocaleString()}</p>
-                  <TrendingUp className="h-5 w-5 text-secondary" />
+                  {portfolio.dayChange >= 0 ? (
+                    <TrendingUp className="h-5 w-5 text-secondary" />
+                  ) : (
+                    <TrendingDown className="h-5 w-5 text-destructive" />
+                  )}
                 </div>
                 <p className="text-sm text-white/80">+{portfolio.dayChangePercentage}%</p>
               </div>
@@ -150,25 +133,74 @@ const PortfolioTracker = () => {
                     <PieChart className="h-5 w-5 text-primary" />
                     Investment Holdings
                   </span>
-                  <Button size="sm" variant="outline">
-                    <Plus className="h-4 w-4" />
-                    Add Investment
+                  <Button size="sm" variant={showForm ? 'secondary' : 'outline'} onClick={() => setShowForm(s => !s)}>
+                    {showForm ? 'Close' : <><Plus className="h-4 w-4" /> Add Investment</>}
                   </Button>
                 </CardTitle>
               </CardHeader>
               <CardContent>
+                {showForm && (
+                  <div className="border rounded-lg p-4 mb-6 grid md:grid-cols-5 gap-2 text-xs items-end">
+                    <div className="space-y-1">
+                      <Label>Name</Label>
+                      <Input 
+                        value={newInv.name} 
+                        onChange={e => setNewInv(p => ({ ...p, name: e.target.value }))}
+                        placeholder="e.g., Gold ETF" 
+                        className="h-8" 
+                      />
+                    </div>
+                    <div className="space-y-1">
+                      <Label>Invested</Label>
+                      <Input 
+                        type="number" 
+                        value={newInv.invested} 
+                        onChange={e => setNewInv(p => ({ ...p, invested: e.target.value }))}
+                        className="h-8" 
+                      />
+                    </div>
+                    <div className="space-y-1">
+                      <Label>Current</Label>
+                      <Input 
+                        type="number" 
+                        value={newInv.current} 
+                        onChange={e => setNewInv(p => ({ ...p, current: e.target.value }))}
+                        className="h-8" 
+                      />
+                    </div>
+                    <div className="space-y-1">
+                      <Label>Type</Label>
+                      <Input 
+                        value={newInv.type} 
+                        onChange={e => setNewInv(p => ({ ...p, type: e.target.value }))}
+                        className="h-8" 
+                      />
+                    </div>
+                    <div className="space-y-1">
+                      <Label>Risk</Label>
+                      <Input 
+                        value={newInv.risk} 
+                        onChange={e => setNewInv(p => ({ ...p, risk: e.target.value }))}
+                        className="h-8" 
+                      />
+                    </div>
+                    <div className="md:col-span-5 flex justify-end">
+                      <Button size="sm" onClick={submitNewInvestment}>Save</Button>
+                    </div>
+                  </div>
+                )}
                 <div className="space-y-6">
-                  {investments.map((investment, index) => (
-                    <div key={index} className="border rounded-lg p-4">
+                  {investments.map(inv => (
+                    <div key={inv.id} className="border rounded-lg p-4">
                       <div className="flex items-start justify-between mb-3">
                         <div>
-                          <h3 className="font-semibold">{investment.name}</h3>
+                          <h3 className="font-semibold">{inv.name}</h3>
                           <div className="flex gap-2 mt-1">
                             <Badge variant="outline" className="text-xs">
-                              {investment.type}
+                              {inv.type}
                             </Badge>
-                            <Badge variant="outline" className={`text-xs ${getRiskColor(investment.risk)}`}>
-                              {investment.risk} Risk
+                            <Badge variant="outline" className={`text-xs ${getRiskColor(inv.risk)}`}>
+                              {inv.risk} Risk
                             </Badge>
                           </div>
                         </div>
@@ -180,20 +212,18 @@ const PortfolioTracker = () => {
                       <div className="grid md:grid-cols-3 gap-4 mb-3">
                         <div>
                           <p className="text-xs text-muted-foreground">Invested</p>
-                          <p className="font-medium">₹{investment.invested.toLocaleString()}</p>
+                          <p className="font-medium">₹{inv.invested.toLocaleString()}</p>
                         </div>
                         <div>
                           <p className="text-xs text-muted-foreground">Current Value</p>
-                          <p className="font-medium">₹{investment.current.toLocaleString()}</p>
+                          <p className="font-medium">₹{inv.current.toLocaleString()}</p>
                         </div>
                         <div>
                           <p className="text-xs text-muted-foreground">Returns</p>
                           <div className="flex items-center gap-1">
-                            <p className="font-medium text-secondary">
-                              ₹{investment.returns.toLocaleString()}
-                            </p>
+                            <p className="font-medium text-secondary">₹{inv.returns.toLocaleString()}</p>
                             <span className="text-xs text-secondary">
-                              (+{investment.returnPercentage}%)
+                              ({inv.returnPercentage >= 0 ? '+' : ''}{inv.returnPercentage}%)
                             </span>
                           </div>
                         </div>
@@ -202,9 +232,9 @@ const PortfolioTracker = () => {
                       <div className="space-y-1">
                         <div className="flex justify-between text-xs">
                           <span>Portfolio Allocation</span>
-                          <span>{investment.allocation}%</span>
+                          <span>{inv.allocation}%</span>
                         </div>
-                        <Progress value={investment.allocation} className="h-1" />
+                        <Progress value={inv.allocation} className="h-1" />
                       </div>
                     </div>
                   ))}
@@ -223,8 +253,8 @@ const PortfolioTracker = () => {
                 </CardTitle>
               </CardHeader>
               <CardContent className="space-y-4">
-                {recommendations.map((rec, index) => (
-                  <div key={index} className="border rounded-lg p-3">
+                {recommendations.map((rec, idx) => (
+                  <div key={idx} className="border rounded-lg p-3">
                     <div className="flex items-start justify-between mb-2">
                       <Badge variant="outline" className="text-xs mb-2">
                         {rec.type}
@@ -253,19 +283,19 @@ const PortfolioTracker = () => {
               <CardContent className="space-y-3">
                 <div className="flex justify-between">
                   <span className="text-sm text-muted-foreground">Best Performer</span>
-                  <span className="text-sm font-medium">Direct Stocks (+25.7%)</span>
+                  <span className="text-sm font-medium">{[...investments].sort((a,b)=>b.returnPercentage-a.returnPercentage)[0]?.name}</span>
                 </div>
                 <div className="flex justify-between">
-                  <span className="text-sm text-muted-foreground">Asset Allocation</span>
-                  <span className="text-sm font-medium">66.6% Equity</span>
+                  <span className="text-sm text-muted-foreground">Total Investments</span>
+                  <span className="text-sm font-medium">{investments.length}</span>
                 </div>
                 <div className="flex justify-between">
-                  <span className="text-sm text-muted-foreground">Risk Score</span>
-                  <span className="text-sm font-medium">7/10 (Moderate-High)</span>
+                  <span className="text-sm text-muted-foreground">Return %</span>
+                  <span className="text-sm font-medium">{portfolio.returnPercentage}%</span>
                 </div>
                 <div className="flex justify-between">
-                  <span className="text-sm text-muted-foreground">Diversification</span>
-                  <span className="text-sm font-medium">Good</span>
+                  <span className="text-sm text-muted-foreground">Day Change</span>
+                  <span className="text-sm font-medium">{portfolio.dayChange >=0 ? '+' : ''}{portfolio.dayChangePercentage}%</span>
                 </div>
               </CardContent>
             </Card>
