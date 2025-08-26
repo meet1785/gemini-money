@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -6,6 +6,7 @@ import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
 import { Badge } from "@/components/ui/badge";
+import { Alert, AlertDescription } from "@/components/ui/alert";
 import { 
   Upload, 
   Plus, 
@@ -14,9 +15,13 @@ import {
   Edit,
   Calendar,
   DollarSign,
-  Tag
+  Tag,
+  TrendingUp,
+  Bot,
+  Loader2
 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
+import geminiService from "@/services/geminiService";
 
 interface Expense {
   id: string;
@@ -56,12 +61,43 @@ const ExpenseTracker = () => {
     }
   ]);
 
+  const [aiAnalysis, setAiAnalysis] = useState<{
+    insights: string[];
+    recommendations: string[];
+    trends: string;
+  }>({
+    insights: [],
+    recommendations: [],
+    trends: ""
+  });
+  
+  const [isAnalyzing, setIsAnalyzing] = useState(false);
   const [newExpense, setNewExpense] = useState({
     amount: "",
     category: "",
     description: "",
     date: ""
   });
+
+  // Get AI analysis when expenses change
+  useEffect(() => {
+    const analyzeExpenses = async () => {
+      if (expenses.length === 0) return;
+      
+      setIsAnalyzing(true);
+      try {
+        const analysis = await geminiService.analyzeExpenses(expenses);
+        setAiAnalysis(analysis);
+      } catch (error) {
+        console.error('Error analyzing expenses:', error);
+      } finally {
+        setIsAnalyzing(false);
+      }
+    };
+
+    const timeout = setTimeout(analyzeExpenses, 1000); // Debounce analysis
+    return () => clearTimeout(timeout);
+  }, [expenses]);
 
   const categories = [
     "Food & Dining",
@@ -295,6 +331,71 @@ const ExpenseTracker = () => {
                     </div>
                   ))}
                 </div>
+              </CardContent>
+            </Card>
+
+            {/* AI Analysis */}
+            <Card className="shadow-card">
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  <Bot className="h-5 w-5 text-primary" />
+                  AI Expense Analysis
+                  {isAnalyzing && <Loader2 className="h-4 w-4 animate-spin text-muted-foreground" />}
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-6">
+                {aiAnalysis.insights.length > 0 && (
+                  <div>
+                    <h4 className="font-medium mb-3 flex items-center gap-2">
+                      <TrendingUp className="h-4 w-4" />
+                      Key Insights
+                    </h4>
+                    <div className="space-y-2">
+                      {aiAnalysis.insights.map((insight, index) => (
+                        <Alert key={index} className="border-blue-200 bg-blue-50/50">
+                          <AlertDescription className="text-blue-700">
+                            {insight}
+                          </AlertDescription>
+                        </Alert>
+                      ))}
+                    </div>
+                  </div>
+                )}
+
+                {aiAnalysis.recommendations.length > 0 && (
+                  <div>
+                    <h4 className="font-medium mb-3">Recommendations</h4>
+                    <div className="space-y-2">
+                      {aiAnalysis.recommendations.map((recommendation, index) => (
+                        <Alert key={index} className="border-green-200 bg-green-50/50">
+                          <AlertDescription className="text-green-700">
+                            • {recommendation}
+                          </AlertDescription>
+                        </Alert>
+                      ))}
+                    </div>
+                  </div>
+                )}
+
+                {aiAnalysis.trends && (
+                  <div>
+                    <h4 className="font-medium mb-3">Spending Trends</h4>
+                    <Alert className="border-orange-200 bg-orange-50/50">
+                      <AlertDescription className="text-orange-700">
+                        {aiAnalysis.trends}
+                      </AlertDescription>
+                    </Alert>
+                  </div>
+                )}
+
+                {aiAnalysis.insights.length === 0 && aiAnalysis.recommendations.length === 0 && !aiAnalysis.trends && !isAnalyzing && (
+                  <Alert>
+                    <Bot className="h-4 w-4" />
+                    <AlertDescription>
+                      Add more expenses to get AI-powered insights and recommendations.
+                    </AlertDescription>
+                  </Alert>
+                )}
               </CardContent>
             </Card>
           </div>
