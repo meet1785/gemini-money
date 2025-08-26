@@ -16,7 +16,7 @@ const App = () => (
       <FinancialDataProvider>
         <Toaster />
         <Sonner />
-        <BrowserRouter>
+        <BrowserRouter basename="/gemini-money">
           <motion.div
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}

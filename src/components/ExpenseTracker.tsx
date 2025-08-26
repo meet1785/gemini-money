@@ -49,7 +49,7 @@ const ExpenseTracker = () => {
       
       setIsAnalyzing(true);
       try {
-        const analysis = await geminiService.analyzeExpenses(expenses as any);
+        const analysis = await geminiService.analyzeExpenses(expenses);
         setAiAnalysis(analysis);
       } catch (e) {
         console.error('Error analyzing expenses:', e);
