@@ -1,4 +1,5 @@
-import React, { createContext, useContext, useEffect, useState, useCallback } from 'react';
+import React, { createContext, useContext, useEffect, useState, useCallback, type ReactNode } from 'react';
+import type { LucideIcon } from 'lucide-react';
 
 // ---- Types ----
 export interface Investment {
@@ -30,7 +31,7 @@ export interface Goal {
   targetDate: string;
   category: string;
   monthlyContribution: number;
-  icon?: any; // Lucide icon component
+  icon?: LucideIcon;
 }
 
 export interface PortfolioSummary {
@@ -60,7 +61,7 @@ interface FinancialDataContextValue {
 
 const FinancialDataContext = createContext<FinancialDataContextValue | undefined>(undefined);
 
-export const FinancialDataProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
+export const FinancialDataProvider: React.FC<{ children: ReactNode }> = ({ children }) => {
   const [investments, setInvestments] = useState<Investment[]>([
     {
       id: 'inv1',

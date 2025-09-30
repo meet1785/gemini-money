@@ -1,8 +1,9 @@
 import { GoogleGenerativeAI } from '@google/generative-ai';
+import type { GenerativeModel, ExpenseAnalysis, FinancialContext } from '@/types/gemini.types';
 
 class GeminiService {
   private genAI: GoogleGenerativeAI | null = null;
-  private model: any = null;
+  private model: GenerativeModel | null = null;
   private isInitialized = false;
 
   constructor() {
@@ -44,7 +45,7 @@ class GeminiService {
     return 'valid';
   }
 
-  public async generateFinancialAdvice(userMessage: string, context?: any): Promise<string> {
+  public async generateFinancialAdvice(userMessage: string, context?: FinancialContext): Promise<string> {
     if (!this.isReady()) {
       return this.getFallbackResponse(userMessage);
     }
@@ -60,7 +61,7 @@ class GeminiService {
     }
   }
 
-  private createFinancialPrompt(userMessage: string, context?: any): string {
+  private createFinancialPrompt(userMessage: string, context?: FinancialContext): string {
     const basePrompt = `You are an expert financial advisor and mentor. Your role is to provide personalized, practical, and easy-to-understand financial advice. 
 
 Guidelines:
@@ -99,11 +100,7 @@ Please provide a helpful, personalized response (keep it under 200 words):`;
     }
   }
 
-  public async analyzeExpenses(expenses: any[]): Promise<{
-    insights: string[];
-    recommendations: string[];
-    trends: string;
-  }> {
+  public async analyzeExpenses(expenses: unknown[]): Promise<ExpenseAnalysis> {
     if (!this.isReady()) {
       return {
         insights: [
@@ -154,7 +151,7 @@ Please provide a helpful, personalized response (keep it under 200 words):`;
     }
   }
 
-  public async generateInvestmentStrategy(goals: any): Promise<string> {
+  public async generateInvestmentStrategy(goals: unknown): Promise<string> {
     if (!this.isReady()) {
       return "For personalized investment strategies, please add your Gemini API key. Meanwhile, consider a diversified portfolio with equity mutual funds for long-term goals and debt funds for short-term needs.";
     }
