@@ -5,6 +5,10 @@ class GeminiService {
   private genAI: GoogleGenerativeAI | null = null;
   private model: GenerativeModel | null = null;
   private isInitialized = false;
+  private lastRequestTime = 0;
+  private readonly minRequestInterval = 1000; // 1 second between requests
+  private retryCount = 0;
+  private readonly maxRetries = 3;
 
   constructor() {
     this.initialize();
@@ -25,6 +29,48 @@ class GeminiService {
     } catch (error) {
       console.error('Failed to initialize Gemini AI:', error);
     }
+  }
+
+  /**
+   * Rate limiting helper - ensures minimum time between API calls
+   */
+  private async waitForRateLimit(): Promise<void> {
+    const now = Date.now();
+    const timeSinceLastRequest = now - this.lastRequestTime;
+    
+    if (timeSinceLastRequest < this.minRequestInterval) {
+      const waitTime = this.minRequestInterval - timeSinceLastRequest;
+      await new Promise(resolve => setTimeout(resolve, waitTime));
+    }
+    
+    this.lastRequestTime = Date.now();
+  }
+
+  /**
+   * Retry logic for failed API calls
+   */
+  private async retryRequest<T>(
+    operation: () => Promise<T>,
+    context: string
+  ): Promise<T> {
+    let lastError: Error | null = null;
+    
+    for (let i = 0; i < this.maxRetries; i++) {
+      try {
+        await this.waitForRateLimit();
+        return await operation();
+      } catch (error) {
+        lastError = error as Error;
+        console.warn(`${context} attempt ${i + 1} failed:`, error);
+        
+        // Wait before retrying (exponential backoff)
+        if (i < this.maxRetries - 1) {
+          await new Promise(resolve => setTimeout(resolve, Math.pow(2, i) * 1000));
+        }
+      }
+    }
+    
+    throw lastError || new Error(`${context} failed after ${this.maxRetries} attempts`);
   }
 
   public isReady(): boolean {
@@ -51,10 +97,13 @@ class GeminiService {
     }
 
     try {
-      const prompt = this.createFinancialPrompt(userMessage, context);
-      const result = await this.model.generateContent(prompt);
-      const response = await result.response;
-      return response.text();
+      return await this.retryRequest(async () => {
+        const prompt = this.createFinancialPrompt(userMessage, context);
+        if (!this.model) throw new Error('Model not initialized');
+        const result = await this.model.generateContent(prompt);
+        const response = await result.response;
+        return response.text();
+      }, 'Financial advice generation');
     } catch (error) {
       console.error('Error generating AI response:', error);
       return this.getFallbackResponse(userMessage);
@@ -118,29 +167,32 @@ Please provide a helpful, personalized response (keep it under 200 words):`;
     }
 
     try {
-      const expenseData = JSON.stringify(expenses);
-      const prompt = `Analyze these expense data and provide insights, recommendations, and trends: ${expenseData}
-      
-      Return a JSON response with:
-      - insights: array of 3-4 key insights about spending patterns
-      - recommendations: array of 3-4 actionable recommendations
-      - trends: string describing overall spending trends
-      
-      Focus on Indian financial context and practical advice.`;
+      return await this.retryRequest(async () => {
+        const expenseData = JSON.stringify(expenses);
+        const prompt = `Analyze these expense data and provide insights, recommendations, and trends: ${expenseData}
+        
+        Return a JSON response with:
+        - insights: array of 3-4 key insights about spending patterns
+        - recommendations: array of 3-4 actionable recommendations
+        - trends: string describing overall spending trends
+        
+        Focus on Indian financial context and practical advice.`;
 
-      const result = await this.model.generateContent(prompt);
-      const response = await result.response;
-      const text = response.text();
-      
-      try {
-        return JSON.parse(text);
-      } catch {
-        return {
-          insights: [text.split('\n')[0] || "Analysis completed"],
-          recommendations: [text.split('\n')[1] || "Review your spending patterns"],
-          trends: text.split('\n')[2] || "Monitor your expenses regularly"
-        };
-      }
+        if (!this.model) throw new Error('Model not initialized');
+        const result = await this.model.generateContent(prompt);
+        const response = await result.response;
+        const text = response.text();
+        
+        try {
+          return JSON.parse(text);
+        } catch {
+          return {
+            insights: [text.split('\n')[0] || "Analysis completed"],
+            recommendations: [text.split('\n')[1] || "Review your spending patterns"],
+            trends: text.split('\n')[2] || "Monitor your expenses regularly"
+          };
+        }
+      }, 'Expense analysis');
     } catch (error) {
       console.error('Error analyzing expenses:', error);
       return {

@@ -9,6 +9,7 @@ import GoalSetting from "@/components/GoalSetting";
 import PortfolioTracker from "@/components/PortfolioTracker";
 import EducationHub from "@/components/EducationHub";
 import APIKeySetup from "@/components/APIKeySetup";
+import DataManagement from "@/components/DataManagement";
 import Footer from "@/components/Footer";
 
 const Index = () => {
@@ -25,6 +26,7 @@ const Index = () => {
         <ExpenseTracker />
         <GoalSetting />
         <PortfolioTracker />
+        <DataManagement />
         <EducationHub />
       </main>
       <Footer />
