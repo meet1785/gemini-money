@@ -5,6 +5,7 @@ import Dashboard from "@/components/Dashboard";
 import FinanceChat from "@/components/FinanceChat";
 import InvestmentCalculator from "@/components/InvestmentCalculator";
 import ExpenseTracker from "@/components/ExpenseTracker";
+import BudgetPlanner from "@/components/BudgetPlanner";
 import GoalSetting from "@/components/GoalSetting";
 import PortfolioTracker from "@/components/PortfolioTracker";
 import EducationHub from "@/components/EducationHub";
@@ -24,6 +25,7 @@ const Index = () => {
         <FinanceChat />
         <InvestmentCalculator />
         <ExpenseTracker />
+        <BudgetPlanner />
         <GoalSetting />
         <PortfolioTracker />
         <DataManagement />

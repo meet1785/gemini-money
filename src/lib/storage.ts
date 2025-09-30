@@ -4,6 +4,7 @@ const STORAGE_KEYS = {
   INVESTMENTS: 'financeGPT_investments',
   EXPENSES: 'financeGPT_expenses',
   GOALS: 'financeGPT_goals',
+  BUDGETS: 'financeGPT_budgets',
   SETTINGS: 'financeGPT_settings',
 } as const;
 
