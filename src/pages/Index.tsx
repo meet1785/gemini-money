@@ -5,10 +5,12 @@ import Dashboard from "@/components/Dashboard";
 import FinanceChat from "@/components/FinanceChat";
 import InvestmentCalculator from "@/components/InvestmentCalculator";
 import ExpenseTracker from "@/components/ExpenseTracker";
+import BudgetPlanner from "@/components/BudgetPlanner";
 import GoalSetting from "@/components/GoalSetting";
 import PortfolioTracker from "@/components/PortfolioTracker";
 import EducationHub from "@/components/EducationHub";
 import APIKeySetup from "@/components/APIKeySetup";
+import DataManagement from "@/components/DataManagement";
 import Footer from "@/components/Footer";
 
 const Index = () => {
@@ -23,8 +25,10 @@ const Index = () => {
         <FinanceChat />
         <InvestmentCalculator />
         <ExpenseTracker />
+        <BudgetPlanner />
         <GoalSetting />
         <PortfolioTracker />
+        <DataManagement />
         <EducationHub />
       </main>
       <Footer />

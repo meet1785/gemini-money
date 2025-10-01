@@ -5,7 +5,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Progress } from "@/components/ui/progress";
 import { Badge } from "@/components/ui/badge";
-import { Target, Plus, TrendingUp, Calendar, Car, Home, Plane, GraduationCap, Heart, DollarSign, Check } from "lucide-react";
+import { Target, Plus, TrendingUp, Calendar, Car, Home, Plane, GraduationCap, Heart, DollarSign, Check, type LucideIcon } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { useFinancialData } from "@/context/FinancialDataContext";
 
@@ -17,7 +17,7 @@ const GoalSetting = () => {
   const [newGoal, setNewGoal] = useState({ name: "", targetAmount: "", targetDate: "", category: "Other", monthlyContribution: "" });
   const [addFunds, setAddFunds] = useState<AddFundsState | null>(null);
 
-  const goalIcons: Record<string, any> = { Vehicle: Car, Home: Home, Travel: Plane, Education: GraduationCap, Health: Heart, Other: Target };
+  const goalIcons: Record<string, LucideIcon> = { Vehicle: Car, Home: Home, Travel: Plane, Education: GraduationCap, Health: Heart, Other: Target };
 
   const handleAddGoal = () => {
     if (!newGoal.name || !newGoal.targetAmount || !newGoal.targetDate) {
@@ -31,7 +31,7 @@ const GoalSetting = () => {
       category: newGoal.category,
       monthlyContribution: parseFloat(newGoal.monthlyContribution) || 0,
       icon: goalIcons[newGoal.category] || Target
-    } as any);
+    });
     setNewGoal({ name: "", targetAmount: "", targetDate: "", category: "Other", monthlyContribution: "" });
     toast({ title: "Goal Created", description: "Your financial goal has been added successfully" });
   };
@@ -117,7 +117,7 @@ const GoalSetting = () => {
               {goals.map(goal => {
                 const progress = calculateProgress(goal.currentAmount, goal.targetAmount);
                 const timeToGoal = calculateTimeToGoal(goal.currentAmount, goal.targetAmount, goal.monthlyContribution);
-                const IconComponent = (goal as any).icon || goalIcons[goal.category] || Target;
+                const IconComponent = goal.icon || goalIcons[goal.category] || Target;
                 const isAdding = addFunds?.goalId === goal.id;
                 return (
                   <Card key={goal.id} className="shadow-card hover:shadow-glow transition-all duration-300">

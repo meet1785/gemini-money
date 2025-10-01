@@ -1,4 +1,6 @@
-import React, { createContext, useContext, useEffect, useState, useCallback } from 'react';
+import React, { createContext, useContext, useEffect, useState, useCallback, type ReactNode } from 'react';
+import type { LucideIcon } from 'lucide-react';
+import { getFromStorage, saveToStorage, STORAGE_KEYS } from '@/lib/storage';
 
 // ---- Types ----
 export interface Investment {
@@ -30,7 +32,7 @@ export interface Goal {
   targetDate: string;
   category: string;
   monthlyContribution: number;
-  icon?: any; // Lucide icon component
+  icon?: LucideIcon;
 }
 
 export interface PortfolioSummary {
@@ -60,90 +62,107 @@ interface FinancialDataContextValue {
 
 const FinancialDataContext = createContext<FinancialDataContextValue | undefined>(undefined);
 
-export const FinancialDataProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
-  const [investments, setInvestments] = useState<Investment[]>([
-    {
-      id: 'inv1',
-      name: 'Equity Mutual Funds',
-      invested: 200000,
-      current: 235000,
-      returns: 35000,
-      returnPercentage: 17.5,
-      allocation: 48.5,
-      type: 'Mutual Fund',
-      risk: 'High'
-    },
-    {
-      id: 'inv2',
-      name: 'Fixed Deposits',
-      invested: 150000,
-      current: 162000,
-      returns: 12000,
-      returnPercentage: 8.0,
-      allocation: 33.4,
-      type: 'Fixed Deposit',
-      risk: 'Low'
-    },
-    {
-      id: 'inv3',
-      name: 'Direct Stocks',
-      invested: 70000,
-      current: 88000,
-      returns: 18000,
-      returnPercentage: 25.7,
-      allocation: 18.1,
-      type: 'Stocks',
-      risk: 'High'
-    }
-  ]);
+// Default data for first-time users
+const DEFAULT_INVESTMENTS: Investment[] = [
+  {
+    id: 'inv1',
+    name: 'Equity Mutual Funds',
+    invested: 200000,
+    current: 235000,
+    returns: 35000,
+    returnPercentage: 17.5,
+    allocation: 48.5,
+    type: 'Mutual Fund',
+    risk: 'High'
+  },
+  {
+    id: 'inv2',
+    name: 'Fixed Deposits',
+    invested: 150000,
+    current: 162000,
+    returns: 12000,
+    returnPercentage: 8.0,
+    allocation: 33.4,
+    type: 'Fixed Deposit',
+    risk: 'Low'
+  },
+  {
+    id: 'inv3',
+    name: 'Direct Stocks',
+    invested: 70000,
+    current: 88000,
+    returns: 18000,
+    returnPercentage: 25.7,
+    allocation: 18.1,
+    type: 'Stocks',
+    risk: 'High'
+  }
+];
 
-  const [expenses, setExpenses] = useState<Expense[]>([
-    {
-      id: 'exp1',
-      category: 'Food & Dining',
-      amount: 12500,
-      date: new Date().toISOString().split('T')[0],
-      description: 'Groceries and dining out',
-      type: 'manual'
-    },
-    {
-      id: 'exp2',
-      category: 'Transportation',
-      amount: 8500,
-      date: new Date().toISOString().split('T')[0],
-      description: 'Fuel and public transport',
-      type: 'manual'
-    },
-    {
-      id: 'exp3',
-      category: 'Entertainment',
-      amount: 4500,
-      date: new Date().toISOString().split('T')[0],
-      description: 'Movies and subscriptions',
-      type: 'manual'
-    }
-  ]);
+const DEFAULT_EXPENSES: Expense[] = [
+  {
+    id: 'exp1',
+    category: 'Food & Dining',
+    amount: 12500,
+    date: new Date().toISOString().split('T')[0],
+    description: 'Groceries and dining out',
+    type: 'manual'
+  },
+  {
+    id: 'exp2',
+    category: 'Transportation',
+    amount: 8500,
+    date: new Date().toISOString().split('T')[0],
+    description: 'Fuel and public transport',
+    type: 'manual'
+  },
+  {
+    id: 'exp3',
+    category: 'Entertainment',
+    amount: 4500,
+    date: new Date().toISOString().split('T')[0],
+    description: 'Movies and subscriptions',
+    type: 'manual'
+  }
+];
 
-  const [goals, setGoals] = useState<Goal[]>([
-    {
-      id: 'goal1',
-      name: 'Emergency Fund',
-      targetAmount: 600000,
-      currentAmount: 420000,
-      targetDate: '2025-06-01',
-      category: 'Emergency',
-      monthlyContribution: 25000
-    },
-    {
-      id: 'goal2',
-      name: 'Home Down Payment',
-      targetAmount: 2000000,
-      currentAmount: 850000,
-      targetDate: '2026-12-31',
-      category: 'Major Purchase',
-      monthlyContribution: 40000
-    }
-  ]);
+const DEFAULT_GOALS: Goal[] = [
+  {
+    id: 'goal1',
+    name: 'Emergency Fund',
+    targetAmount: 600000,
+    currentAmount: 420000,
+    targetDate: '2025-06-01',
+    category: 'Emergency',
+    monthlyContribution: 25000
+  },
+  {
+    id: 'goal2',
+    name: 'Home Down Payment',
+    targetAmount: 2000000,
+    currentAmount: 850000,
+    targetDate: '2026-12-31',
+    category: 'Major Purchase',
+    monthlyContribution: 40000
+  }
+];
+
+export const FinancialDataProvider: React.FC<{ children: ReactNode }> = ({ children }) => {
+  // Initialize from localStorage or use defaults
+  const [investments, setInvestments] = useState<Investment[]>(() => {
+    const saved = getFromStorage<Investment[]>(STORAGE_KEYS.INVESTMENTS);
+    return saved || DEFAULT_INVESTMENTS;
+  });
+
+  const [expenses, setExpenses] = useState<Expense[]>(() => {
+    const saved = getFromStorage<Expense[]>(STORAGE_KEYS.EXPENSES);
+    return saved || DEFAULT_EXPENSES;
+  });
+
+  const [goals, setGoals] = useState<Goal[]>(() => {
+    const saved = getFromStorage<Goal[]>(STORAGE_KEYS.GOALS);
+    return saved || DEFAULT_GOALS;
+  });
 
   const [portfolio, setPortfolio] = useState<PortfolioSummary>(() => {
     const totalInvested = investments.reduce((s, i) => s + i.invested, 0);
@@ -174,6 +193,19 @@ export const FinancialDataProvider: React.FC<{ children: React.ReactNode }> = ({
       returnPercentage: Number(((totalReturns / totalInvested) * 100).toFixed(2))
     }));
   }, [investments]);
+
+  // Save data to localStorage whenever it changes
+  useEffect(() => {
+    saveToStorage(STORAGE_KEYS.INVESTMENTS, investments);
+  }, [investments]);
+
+  useEffect(() => {
+    saveToStorage(STORAGE_KEYS.EXPENSES, expenses);
+  }, [expenses]);
+
+  useEffect(() => {
+    saveToStorage(STORAGE_KEYS.GOALS, goals);
+  }, [goals]);
 
   useEffect(() => {
     recomputePortfolio();

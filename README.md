@@ -1,17 +1,19 @@
 # FinanceGPT - AI-Powered Personal Finance Management
 
-A comprehensive personal finance management application powered by Google's Gemini AI, offering real-time financial insights, expense tracking, investment planning, and personalized advice.
+A **production-ready** comprehensive personal finance management application powered by Google's Gemini AI, offering real-time financial insights, expense tracking, investment planning, and personalized advice.
 
 ## 🚀 Features
 
-### ✅ Fully Functional Components
+### ✅ Core Features
 - **Real-time Dashboard** - Live portfolio updates and financial health monitoring
-- **AI Financial Chat** - Intelligent conversational finance advisor
+- **AI Financial Chat** - Intelligent conversational finance advisor with retry logic and rate limiting
 - **Smart Expense Tracker** - Automatic categorization with AI analysis
+- **Budget Planner** - Set spending limits and track progress by category
 - **Goal Setting & Tracking** - Monitor progress toward financial objectives
-- **Portfolio Management** - Real-time investment tracking
+- **Portfolio Management** - Real-time investment tracking with simulated updates
 - **Investment Calculator** - Plan and simulate investment strategies
 - **Educational Hub** - Learn financial concepts
+- **Data Management** - Export, import, and manage your financial data
 
 ### 🤖 AI-Powered Capabilities
 - **Personalized Financial Advice** - Context-aware recommendations
@@ -19,6 +21,17 @@ A comprehensive personal finance management application powered by Google's Gemi
 - **Investment Strategy Planning** - Tailored portfolio suggestions
 - **Real-time Data Processing** - Dynamic updates and trend analysis
 - **Fallback Mode** - Works without API key with pre-built responses
+- **Retry Logic** - Automatic retry with exponential backoff for failed API calls
+- **Rate Limiting** - Prevents API quota exhaustion (1 second minimum between requests)
+
+### 🔒 Production-Ready Features
+- **Data Persistence** - All data automatically saved to browser localStorage
+- **Data Export/Import** - Backup and restore your financial data as JSON
+- **Error Boundaries** - Graceful error handling with recovery options
+- **Input Validation** - Comprehensive validation for all user inputs
+- **TypeScript** - Full type safety throughout the application
+- **Responsive Design** - Works seamlessly on desktop and mobile
+- **Error Recovery** - Automatic retry logic for API failures
 
 ## 🛠️ Quick Setup
 
@@ -130,26 +143,43 @@ npm run lint
 - View your financial health score
 - Monitor real-time portfolio performance
 - Track expense categories and trends
+- View connection status indicator
 
 ### 2. AI Financial Chat
 - Ask questions in natural language
 - Get personalized financial advice
 - Use quick question buttons for common queries
+- Automatic retry on API failures
 
 ### 3. Expense Tracking
 - Add expenses manually
-- Upload bank statements for AI categorization
+- Upload bank statements for AI categorization (demo)
 - View AI-powered spending insights
+- Track expenses by category
 
-### 4. Goal Management  
+### 4. Budget Planning (NEW)
+- Set spending limits for different categories
+- Track budget usage in real-time
+- Get alerts when approaching limits
+- Monitor monthly and yearly budgets
+
+### 5. Goal Management  
 - Set financial goals with target amounts
 - Track progress automatically
+- Add funds to goals incrementally
 - Get AI recommendations for achieving goals
 
-### 5. Portfolio Tracking
-- Monitor investment performance
-- View real-time returns
-- Get AI investment strategy suggestions
+### 6. Portfolio Tracking
+- Monitor investment performance in real-time
+- View returns and allocation
+- Add new investments
+- Track portfolio value changes
+
+### 7. Data Management (NEW)
+- **Export Data**: Download all your financial data as JSON backup
+- **Import Data**: Restore from a previous backup
+- **Clear Data**: Reset all stored data (with confirmation)
+- **Local Storage**: All data stored securely in your browser
 
 ## 🔐 Security & Privacy
 
@@ -157,6 +187,27 @@ npm run lint
 - **No Data Sharing**: Your financial data stays private
 - **Secure Processing**: All AI processing respects user privacy
 - **Local First**: Core features work offline
+- **Data Persistence**: Automatic localStorage backup
+- **Input Validation**: Comprehensive validation and sanitization
+- **Error Boundaries**: Graceful error handling prevents data loss
+- **Rate Limiting**: Prevents API abuse and quota exhaustion
+
+## 🏗️ Architecture
+
+### Technology Stack
+- **Frontend**: React 18 with TypeScript
+- **Styling**: Tailwind CSS with shadcn/ui components
+- **AI**: Google Gemini API
+- **State Management**: React Context API
+- **Data Persistence**: Browser localStorage
+- **Build Tool**: Vite
+- **Animations**: Framer Motion
+
+### Key Components
+- **Error Boundary**: Catches and handles runtime errors
+- **Data Persistence Layer**: Automatic localStorage sync
+- **API Service**: Rate-limited Gemini AI integration with retry logic
+- **Validation Layer**: Input sanitization and validation utilities
 
 ## 🆘 Troubleshooting
 
@@ -170,10 +221,33 @@ npm run lint
 - Cached data is used when offline
 - Real-time updates resume when connection is restored
 
+### Data Management
+- **Backup Regularly**: Use the Export feature to backup your data
+- **Before Clearing**: Always export data before using the clear function
+- **Import**: Can restore data from any previous export file
+- **localStorage Limit**: Browser localStorage has a ~5-10MB limit per domain
+
 ### Build Issues
 - Run `npm install` to ensure all dependencies are installed
 - Clear node_modules and reinstall if needed
 - Check that all environment variables are properly set
+
+## 💾 Data Storage
+
+All your financial data is stored locally in your browser using localStorage:
+
+- **Automatic Saving**: Data is automatically saved when you add/edit/delete items
+- **Persistent**: Data survives page refreshes and browser restarts
+- **Private**: Data never leaves your browser
+- **Backup Options**: Export feature for external backups
+- **No Server**: No database or server required
+
+### Data Stored:
+- Expenses
+- Budgets
+- Goals
+- Investments
+- Settings
 
 ## 🤝 Contributing
 
@@ -187,13 +261,15 @@ npm run lint
 
 This project is licensed under the MIT License.
 
-## 🎯 Next Steps After Setup
+## 🎯 Getting Started
 
 1. **Add Your API Key** - Follow the setup instructions above
 2. **Explore Features** - Navigate through all sections
-3. **Add Sample Data** - Input your expenses and goals
-4. **Monitor Real-time Updates** - Watch portfolio changes
-5. **Chat with AI** - Ask financial questions
+3. **Add Your Data** - Input your expenses, goals, and budgets
+4. **Set Budgets** - Create spending limits for categories
+5. **Monitor Progress** - Watch real-time updates
+6. **Chat with AI** - Ask financial questions
+7. **Export Data** - Create regular backups
 
 ---
 
