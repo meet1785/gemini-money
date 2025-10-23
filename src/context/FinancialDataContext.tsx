@@ -21,7 +21,20 @@ export interface Expense {
   amount: number;
   date: string; // ISO date
   description: string;
-  type: 'manual' | 'uploaded';
+  type: 'manual' | 'uploaded' | 'recurring';
+}
+
+export interface RecurringTransaction {
+  id: string;
+  name: string;
+  amount: number;
+  category: string;
+  frequency: 'daily' | 'weekly' | 'monthly' | 'yearly';
+  startDate: string; // ISO date
+  endDate?: string; // Optional end date
+  lastProcessed?: string; // Last date this was processed
+  isActive: boolean;
+  description: string;
 }
 
 export interface Goal {
@@ -49,6 +62,7 @@ interface FinancialDataContextValue {
   investments: Investment[];
   expenses: Expense[];
   goals: Goal[];
+  recurringTransactions: RecurringTransaction[];
   lastUpdate: Date;
   isConnected: boolean;
   // Actions
@@ -58,6 +72,10 @@ interface FinancialDataContextValue {
   addGoal: (partial: Omit<Goal, 'id' | 'currentAmount'>) => void;
   addFundsToGoal: (goalId: string, amount: number) => void;
   addInvestment: (partial: Omit<Investment, 'id' | 'returns' | 'returnPercentage' | 'allocation'>) => void;
+  addRecurringTransaction: (partial: Omit<RecurringTransaction, 'id' | 'lastProcessed'>) => void;
+  removeRecurringTransaction: (id: string) => void;
+  toggleRecurringTransaction: (id: string) => void;
+  updateRecurringTransaction: (id: string, updates: Partial<RecurringTransaction>) => void;
 }
 
 const FinancialDataContext = createContext<FinancialDataContextValue | undefined>(undefined);
@@ -147,6 +165,29 @@ const DEFAULT_GOALS: Goal[] = [
   }
 ];
 
+const DEFAULT_RECURRING_TRANSACTIONS: RecurringTransaction[] = [
+  {
+    id: 'rec1',
+    name: 'Monthly Salary',
+    amount: 85000,
+    category: 'Income',
+    frequency: 'monthly',
+    startDate: '2024-01-01',
+    isActive: true,
+    description: 'Monthly salary deposit'
+  },
+  {
+    id: 'rec2',
+    name: 'Rent Payment',
+    amount: 25000,
+    category: 'Housing',
+    frequency: 'monthly',
+    startDate: '2024-01-05',
+    isActive: true,
+    description: 'Monthly rent'
+  }
+];
+
 export const FinancialDataProvider: React.FC<{ children: ReactNode }> = ({ children }) => {
   // Initialize from localStorage or use defaults
   const [investments, setInvestments] = useState<Investment[]>(() => {
@@ -162,6 +203,11 @@ export const FinancialDataProvider: React.FC<{ children: ReactNode }> = ({ child
   const [goals, setGoals] = useState<Goal[]>(() => {
     const saved = getFromStorage<Goal[]>(STORAGE_KEYS.GOALS);
     return saved || DEFAULT_GOALS;
+  });
+
+  const [recurringTransactions, setRecurringTransactions] = useState<RecurringTransaction[]>(() => {
+    const saved = getFromStorage<RecurringTransaction[]>(STORAGE_KEYS.RECURRING_TRANSACTIONS);
+    return saved || DEFAULT_RECURRING_TRANSACTIONS;
   });
 
   const [portfolio, setPortfolio] = useState<PortfolioSummary>(() => {
@@ -206,6 +252,10 @@ export const FinancialDataProvider: React.FC<{ children: ReactNode }> = ({ child
   useEffect(() => {
     saveToStorage(STORAGE_KEYS.GOALS, goals);
   }, [goals]);
+
+  useEffect(() => {
+    saveToStorage(STORAGE_KEYS.RECURRING_TRANSACTIONS, recurringTransactions);
+  }, [recurringTransactions]);
 
   useEffect(() => {
     recomputePortfolio();
@@ -260,6 +310,103 @@ export const FinancialDataProvider: React.FC<{ children: ReactNode }> = ({ child
     return () => clearInterval(id);
   }, []);
 
+  // Process recurring transactions
+  const processRecurringTransactions = useCallback(() => {
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+
+    const newExpenses: Expense[] = [];
+    const updatedTransactions: RecurringTransaction[] = [];
+
+    recurringTransactions.forEach(transaction => {
+      if (!transaction.isActive) return;
+
+      const startDate = new Date(transaction.startDate);
+      startDate.setHours(0, 0, 0, 0);
+
+      // Check if we should process this transaction
+      if (startDate > today) return;
+
+      // Check if end date has passed
+      if (transaction.endDate) {
+        const endDate = new Date(transaction.endDate);
+        endDate.setHours(0, 0, 0, 0);
+        if (endDate < today) return;
+      }
+
+      // Get last processed date or use start date
+      const lastProcessed = transaction.lastProcessed 
+        ? new Date(transaction.lastProcessed) 
+        : new Date(startDate);
+      lastProcessed.setHours(0, 0, 0, 0);
+
+      // Calculate if we need to add a new transaction
+      let shouldProcess = false;
+      const nextProcessDate = new Date(lastProcessed);
+
+      switch (transaction.frequency) {
+        case 'daily':
+          nextProcessDate.setDate(nextProcessDate.getDate() + 1);
+          shouldProcess = nextProcessDate <= today;
+          break;
+        case 'weekly':
+          nextProcessDate.setDate(nextProcessDate.getDate() + 7);
+          shouldProcess = nextProcessDate <= today;
+          break;
+        case 'monthly':
+          nextProcessDate.setMonth(nextProcessDate.getMonth() + 1);
+          shouldProcess = nextProcessDate <= today;
+          break;
+        case 'yearly':
+          nextProcessDate.setFullYear(nextProcessDate.getFullYear() + 1);
+          shouldProcess = nextProcessDate <= today;
+          break;
+      }
+
+      if (shouldProcess) {
+        // Create expense from recurring transaction
+        newExpenses.push({
+          id: `rec-${transaction.id}-${Date.now()}`,
+          amount: transaction.amount,
+          category: transaction.category,
+          description: `${transaction.name} (Recurring)`,
+          date: today.toISOString().split('T')[0],
+          type: 'recurring'
+        });
+
+        // Mark transaction as updated
+        updatedTransactions.push({
+          ...transaction,
+          lastProcessed: today.toISOString().split('T')[0]
+        });
+      }
+    });
+
+    // Batch update expenses and transactions
+    if (newExpenses.length > 0) {
+      setExpenses(prev => [...newExpenses, ...prev]);
+    }
+    if (updatedTransactions.length > 0) {
+      setRecurringTransactions(prev => 
+        prev.map(t => {
+          const updated = updatedTransactions.find(ut => ut.id === t.id);
+          return updated || t;
+        })
+      );
+      setLastUpdate(new Date());
+    }
+  }, [recurringTransactions]);
+
+  // Check recurring transactions daily
+  useEffect(() => {
+    // Process immediately on mount
+    processRecurringTransactions();
+
+    // Check every hour for new transactions
+    const id = setInterval(processRecurringTransactions, 3600000);
+    return () => clearInterval(id);
+  }, [processRecurringTransactions]);
+
   const addExpense = (partial: Omit<Expense, 'id'>) => {
     setExpenses(prev => [{ ...partial, id: Date.now().toString() }, ...prev]);
     setLastUpdate(new Date());
@@ -295,11 +442,41 @@ export const FinancialDataProvider: React.FC<{ children: ReactNode }> = ({ child
     setLastUpdate(new Date());
   };
 
+  const addRecurringTransaction = (partial: Omit<RecurringTransaction, 'id' | 'lastProcessed'>) => {
+    const newTransaction: RecurringTransaction = {
+      ...partial,
+      id: Date.now().toString(),
+      lastProcessed: undefined
+    };
+    setRecurringTransactions(prev => [...prev, newTransaction]);
+    setLastUpdate(new Date());
+  };
+
+  const removeRecurringTransaction = (id: string) => {
+    setRecurringTransactions(prev => prev.filter(t => t.id !== id));
+    setLastUpdate(new Date());
+  };
+
+  const toggleRecurringTransaction = (id: string) => {
+    setRecurringTransactions(prev => 
+      prev.map(t => t.id === id ? { ...t, isActive: !t.isActive } : t)
+    );
+    setLastUpdate(new Date());
+  };
+
+  const updateRecurringTransaction = (id: string, updates: Partial<RecurringTransaction>) => {
+    setRecurringTransactions(prev => 
+      prev.map(t => t.id === id ? { ...t, ...updates } : t)
+    );
+    setLastUpdate(new Date());
+  };
+
   const value: FinancialDataContextValue = {
     portfolio,
     investments,
     expenses,
     goals,
+    recurringTransactions,
     lastUpdate,
     isConnected,
     simulatePortfolioUpdate,
@@ -307,7 +484,11 @@ export const FinancialDataProvider: React.FC<{ children: ReactNode }> = ({ child
     removeExpense,
     addGoal,
     addFundsToGoal,
-    addInvestment
+    addInvestment,
+    addRecurringTransaction,
+    removeRecurringTransaction,
+    toggleRecurringTransaction,
+    updateRecurringTransaction
   };
 
   return (

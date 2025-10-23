@@ -8,6 +8,7 @@ import ExpenseTracker from "@/components/ExpenseTracker";
 import BudgetPlanner from "@/components/BudgetPlanner";
 import GoalSetting from "@/components/GoalSetting";
 import PortfolioTracker from "@/components/PortfolioTracker";
+import RecurringTransactions from "@/components/RecurringTransactions";
 import EducationHub from "@/components/EducationHub";
 import APIKeySetup from "@/components/APIKeySetup";
 import DataManagement from "@/components/DataManagement";
@@ -26,6 +27,7 @@ const Index = () => {
         <InvestmentCalculator />
         <ExpenseTracker />
         <BudgetPlanner />
+        <RecurringTransactions />
         <GoalSetting />
         <PortfolioTracker />
         <DataManagement />
