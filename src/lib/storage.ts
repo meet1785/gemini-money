@@ -6,6 +6,7 @@ const STORAGE_KEYS = {
   GOALS: 'financeGPT_goals',
   BUDGETS: 'financeGPT_budgets',
   SETTINGS: 'financeGPT_settings',
+  RECURRING_TRANSACTIONS: 'financeGPT_recurringTransactions',
 } as const;
 
 export interface StorageData<T> {
